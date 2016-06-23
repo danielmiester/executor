@@ -18,11 +18,20 @@ Node.js ^6.2.2
 I use arrow notation in this script, so your install of node must be able to support it.
 
 ## Installation
+### Manually
 1. Clone this project to somewhere on your system path, or add the executable to your path.
 2. From within the directory, run `npm install` to retrieve and install all dependencies.
     - If you run `npm install -g` it will install all the packages globally, as well as
     installing a symlink '/usr/local/bin/executor' to your path.
 3. Create a keychain item (MAX OS X: Keyring Access) named after the FQDN of the instance you
+    want to access, with *Account* set to the desired login username, and the appropriate password
+     (If you get it wrong, the program will let you know and instruct you of the appropriate values)
+4. Have fun!
+
+### Via npm
+1. Run `npm install -g sn-script-executor` it will install all the packages globally, as well as
+    installing a symlink '/usr/local/bin/executor' to your path.
+2. Create a keychain item (MAX OS X: Keyring Access) named after the FQDN of the instance you
     want to access, with *Account* set to the desired login username, and the appropriate password
      (If you get it wrong, the program will let you know and instruct you of the appropriate values)
 4. Have fun!
