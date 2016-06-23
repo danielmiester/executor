@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "Executes a script as admin on a Service now instance",
   "main": "executor.js",
-  "bin":{"executor":"./executor.js"},
+  "bin": {
+    "executor": "./executor.js"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -27,9 +29,10 @@
     "type": "git",
     "url": "git+https://github.com/danielmiester/executor.git"
   },
-  "engines" : { "node" : "^6.2.2" },
-
-"keywords": [
+  "engines": {
+    "node": "^6.2.2"
+  },
+  "keywords": [
     "servicenow",
     "service",
     "now",
@@ -39,5 +42,6 @@
   "bugs": {
     "url": "https://github.com/danielmiester/executor/issues"
   },
-  "homepage": "https://github.com/danielmiester/executor#readme"
+  "homepage": "https://github.com/danielmiester/executor#readme",
+  "preferGlobal": true
 }
