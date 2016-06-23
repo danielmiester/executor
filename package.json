@@ -1,6 +1,6 @@
 {
   "name": "sn-script-executor",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Executes a script as admin on a Service now instance",
   "main": "executor.js",
   "bin": {
