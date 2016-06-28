@@ -16,6 +16,8 @@ var FileCookieStore = require('tough-cookie-filestore');
 var agentkeepalive = require('agentkeepalive'),
     HttpsAgent = agentkeepalive.HttpsAgent,
     agent = new HttpsAgent({keepAlive: true, keepAliveTimeout:300000});
+var AllHtmlEntities = require('html-entities');
+    AllHtmlEntities = new AllHtmlEntities.AllHtmlEntities();
 var options;
 
 try {
@@ -143,7 +145,7 @@ Promise
     .then(function (incomingMessage) {
         var $ = cheerio.load(incomingMessage.body);
         var pre = $("pre");
-        console.log(pre.html().replace(/<br\/?>/gi, '\n'));
+        console.log(AllHtmlEntities.decode(pre.html().replace(/<br\/?>/gi, '\n')));
         return Promise.resolve();
     });
 
