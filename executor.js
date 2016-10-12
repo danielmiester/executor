@@ -120,7 +120,7 @@ function getFiles() {
     });
     return [
         Promise.all(files).reduce(function(acc,item/*,index,arrayLength*/){
-            return acc + item;
+            return acc +";\n" + item;
         }),
         fs.readFile(".token")
             .catch(function () {
