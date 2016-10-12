@@ -46,7 +46,10 @@ if(!(options.file instanceof Array)){
 }
 
 if(options.files){
-    options.file.unshift(...(fs.readFileSync(options.files).toString().split("\n")));
+    options.file.unshift(...(
+        fs.readFileSync(options.files).toString()
+            .split("\n")
+            .filter(file => !file.startsWith("#"))));
 }
 if(! options.file){
     console.error("Please specify a js file to execute");
