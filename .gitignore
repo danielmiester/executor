@@ -39,3 +39,5 @@ jspm_packages
 # my token file.
 .token
 /foo.js
+/foo1.js
+/doByFiles.txt

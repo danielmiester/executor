@@ -4,18 +4,11 @@ const path = require('path');
 const fs = require('mz/fs');
 const getStdin = require('get-stdin');
 var Promise = require('bluebird');
-Promise.config({
-    // Enable warnings
-    warnings: true,
-    // Enable long stack traces
-    longStackTraces: true
-});
-
 const keytar = require('keytar');
 const commandLineArgs = require('command-line-args');
 const default_fqdn = "datacenterdev.service-now.com";
 const USAGE_MSG = `Command Usage:\n    node ${path.basename(process.argv[1])} [--instance instance] `
-    +"[--user user] --file file| file\n\n    --instance, -i instance     instance fqdn to access "
+    +"[--user user] --files fileargs --file file| file\n\n    --instance, -i instance     instance fqdn to access "
     +`(default:${default_fqdn})\n    --user, -u user             username to access instance as `
     +"(default: current username)\n    --file, -f file             JS file to execute as the contents of instance's Background Scripts page ('-' : stdin)"
     +"\n    --files, -F file             \\newline delimited list of files to concatonate, and execute. Files specified by --file are appended to this list";
@@ -43,19 +36,24 @@ try {
 }
 if(!options.file && !options.files){
     console.error(USAGE_MSG);
-    process.exit(-1);
-}
-if(! options.file){
-    console.error("Please specify a js file to execute");
-    console.error(USAGE_MSG);
     process.exit(-2);
+}
+if (!options.file){
+    options.file = [];
 }
 if(!(options.file instanceof Array)){
     options.file = [options.file];
 }
+
 if(options.files){
     options.file.unshift(...(fs.readFileSync(options.files).toString().split("\n")));
 }
+if(! options.file){
+    console.error("Please specify a js file to execute");
+    console.error(USAGE_MSG);
+    process.exit(-3);
+}
+
 
 //noinspection JSUnresolvedVariable
 const uri = "https://" + options.instance + "/";
