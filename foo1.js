@@ -1,1 +1,0 @@
-gs.print("Ran foo1.js");
