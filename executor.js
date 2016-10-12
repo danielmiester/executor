@@ -2,14 +2,23 @@
 const os = require('os');
 const path = require('path');
 const fs = require('mz/fs');
+const getStdin = require('get-stdin');
 var Promise = require('bluebird');
+Promise.config({
+    // Enable warnings
+    warnings: true,
+    // Enable long stack traces
+    longStackTraces: true
+});
+
 const keytar = require('keytar');
 const commandLineArgs = require('command-line-args');
 const default_fqdn = "datacenterdev.service-now.com";
 const USAGE_MSG = `Command Usage:\n    node ${path.basename(process.argv[1])} [--instance instance] `
     +"[--user user] --file file| file\n\n    --instance, -i instance     instance fqdn to access "
     +`(default:${default_fqdn})\n    --user, -u user             username to access instance as `
-    +"(default: current username)\n    --file, -f file             JS file to execute as the contents of instance's Background Scripts page";
+    +"(default: current username)\n    --file, -f file             JS file to execute as the contents of instance's Background Scripts page ('-' : stdin)"
+    +"\n    --files, -F file             \\newline delimited list of files to concatonate, and execute. Files specified by --file are appended to this list";
 var request = require('request-promise');
 var cheerio = require('cheerio');
 var FileCookieStore = require('tough-cookie-filestore');
@@ -24,9 +33,15 @@ try {
     options = commandLineArgs([
         {name: 'instance', alias:'i', type: String, defaultValue: default_fqdn},
         {name: 'user', alias:'u', type: String, defaultValue: os.userInfo().username},
-        {name: 'file', alias:'f', defaultOption: true, type: String}
+        {name: 'file', alias:'f', defaultOption: true, type: String,multiple:true},
+        {name: 'files', alias:'F', type:String}
+
     ]);
 }catch(e){
+    console.error(USAGE_MSG);
+    process.exit(-1);
+}
+if(!options.file && !options.files){
     console.error(USAGE_MSG);
     process.exit(-1);
 }
@@ -35,17 +50,32 @@ if(! options.file){
     console.error(USAGE_MSG);
     process.exit(-2);
 }
+if(!(options.file instanceof Array)){
+    options.file = [options.file];
+}
+if(options.files){
+    options.file.unshift(...(fs.readFileSync(options.files).toString().split("\n")));
+}
+
+//noinspection JSUnresolvedVariable
 const uri = "https://" + options.instance + "/";
+//noinspection JSUnresolvedVariable
 var password = keytar.getPassword(options.instance, options.user);
 if(!password ){
     console.error('Password not found in keyring,');
     console.error('please create a password in the login keyring');
+    //noinspection JSUnresolvedVariable
     console.error(`\t Name:${options.instance}`);
     console.error(`\t Account:${options.user}`);
     process.exit(-3);
 }
+const cookiePath = os.homedir() + '/.executorCookies.json';
 
-const fcs = new FileCookieStore(os.homedir() + '/.executorCookies.json');
+if(!fs.existsSync(cookiePath)){
+    fs.writeFileSync(cookiePath,"{}");
+}
+
+const fcs = new FileCookieStore(cookiePath);
 var j = request.jar(fcs);
 request = request.defaults({
     jar: j,
@@ -55,11 +85,10 @@ request = request.defaults({
     baseUrl:uri
 });
 
+
 function executeCode(code, token) {
     if(! token){
-        console.dir(arguments)
         throw Object.assign(new Error("empty token"),{statusCode:302,script:code});
-        
     }
     return request.post('sys.scripts.do',{
         form: {
@@ -67,18 +96,36 @@ function executeCode(code, token) {
             runscript: "Run script",
             sysparm_ck: token,
             sys_scope: "515259cb6f2a51004c27511e5d3ee4fc"
-        }});
+        }})
+        .catch(function(e){
+            e.script = code;
+            throw e;
+        });
 }
 function getFiles() {
+    var files = [];
+    options.file.forEach(function(file) {
+        if(file === "-"){
+            files.push(Promise.resolve().then(function(){return getStdin()}).timeout(1500).catch(Promise.TimeoutError, function() {
+                console.warn("STDIN specified, but could not be retrieved");
+            }));
+        }else {
+            files.push(
+                fs.readFile(file)
+                    .catch(function () {
+                        console.warn("File Not Found:", file);
+                        return Promise.resolve("");
+                    })
+                    .then(buffer=>buffer.toString())
+            )
+        }
+    });
     return [
-        fs.readFile(options.file)
-            .catch(function (e) {
-                console.error("File not found:", options.file);
-                return Promise.reject("Script Not Found")
-            })
-            .then(buffer => buffer.toString()),
+        Promise.all(files).reduce(function(acc,item/*,index,arrayLength*/){
+            return acc + item;
+        }),
         fs.readFile(".token")
-            .catch(function (e) {
+            .catch(function () {
                 return Promise.resolve("");
             })
             .then(buffer => buffer.toString())
@@ -89,18 +136,18 @@ function getFiles() {
 process.argv.shift();
 process.argv.shift();
 
-Promise
-    .delay(0)
+Promise.resolve()
     .then(getFiles)
-    .catch(e => console.dir(e),function (e){
+    .catch(e => console.dir(e),function (){
         process.exit(-2);
     })
-    //    .then(verifyToken)
     .spread(executeCode)
     .catch(e => e.statusCode == 302, function handleNewLogin(e) {
         var code = e.script;
         return new Promise(function(cb){
+            //noinspection JSUnresolvedVariable
             fcs.removeCookies(options.instance, "/",cb);
+
         })
             .then(function(){return request.get("login.do")})
             .then(function (incomingMessage) {
@@ -118,7 +165,6 @@ Promise
                         sysparm_login_url: 'welcome.do'
                     },
                     followAllRedirects: true
-                    //jar:j
                 });
             })
             .then(function (incomingMessage) {
@@ -142,15 +188,11 @@ Promise
                 process.exit(-4);
             });
     })
-    .then(function (incomingMessage) {
+    .then(function printResult(incomingMessage,code,token) {
         var $ = cheerio.load(incomingMessage.body);
         var pre = $("pre");
-        console.log(AllHtmlEntities.decode(pre.html().replace(/<br\/?>/gi, '\n')));
+        var html = pre.html();
+        console.log(AllHtmlEntities.decode(html.replace(/<br\/?>/gi, '\n')));
         return Promise.resolve();
     });
 
-
-//
-//     .catch(function(err){})
-//     .then()
-//
