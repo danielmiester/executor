@@ -173,6 +173,8 @@ Promise.resolve()
                     return Promise.reject("Session Expired");
                 }else if(incomingMessage.body.indexOf("User name or password invalid") != -1) {
                     return Promise.reject("Invalid Username/Password");
+                }else if(incomingMessage.body == "not authorized"){
+                    return Promise.reject("Not Authorized! Need to Escalate?");
                 }else{
                     return request.get("sys.scripts.do");
                 }
