@@ -101,7 +101,7 @@ function executeCode(code, token) {
         .catch(function(e){
             e.script = code;
             throw e;
-        });
+        })
 }
 function getFiles() {
     var files = [];
@@ -112,18 +112,27 @@ function getFiles() {
             }));
         }else {
             files.push(
-                fs.readFile(file)
+                fs.readFile(file,"utf8")
                     .catch(function () {
                         console.warn("File Not Found:", file);
                         return Promise.resolve("");
                     })
-                    .then(buffer=>buffer.toString())
+                    .then(buffer=>[file ,buffer.toString()])
             )
         }
     });
     return [
-        Promise.all(files).reduce(function(acc,item/*,index,arrayLength*/){
+        Promise.all(files).map(function(item,index,arrayLength){
+            var [name,code] = item;
+            code = JSON.stringify(code);
+            return `new GlideScriptEvaluator().evaluateString(${code},'${name}',false);`;
+        }).reduce(function(acc,item,index,arrayLength){
             return acc +";\n" + item;
+        }).then(function(code){
+            // if(options.files){
+            //     fs.writeFile("codeExecuted.js",code,'utf8')
+            // }
+            return code
         }),
         fs.readFile(".token")
             .catch(function () {
