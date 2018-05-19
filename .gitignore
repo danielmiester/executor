@@ -36,6 +36,8 @@ jspm_packages
 # Optional REPL history
 .node_repl_history
 
+*.DS_Store
+
 # my token file.
 .token
 /foo.js
@@ -44,3 +46,4 @@ jspm_packages
 /foo2.js
 /codeExecuted.js
 .idea/dbnavigator.xml
+/.gitignore

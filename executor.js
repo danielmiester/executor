@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+const pjson = require('./package.json');
 const os = require('os');
 const path = require('path');
 const fs = require('mz/fs');
@@ -8,7 +9,9 @@ const keytar = require('keytar');
 const commandLineArgs = require('command-line-args');
 const default_fqdn = "datacenterdev.service-now.com";
 const globalScopeSysId = "515259cb6f2a51004c27511e5d3ee4fc";
-const USAGE_MSG = "Command Usage:" +
+const scriptName = pjson.name + " v" + pjson.version;
+const USAGE_MSG = scriptName + "\n"+
+    "Command Usage:" +
     `\n    node ${path.basename(process.argv[1])} [--instance instance] `+
     "[--user user] --files fileargs --file file| file [--scope sys_id]\n" +
     "\n     --instance, -i instance     instance fqdn to access "+
@@ -20,6 +23,8 @@ const USAGE_MSG = "Command Usage:" +
     "\n     --files, -F file            \\newline delimited list of files to concatonate, and execute. Files specified by --file are appended to this list" +
     "\n     --scope, -s scope_sys_id    sys_id of the scope you want to execute this code in, " +
     `\n                                     default:${globalScopeSysId}  which is the 'global' scope`+
+    "\n     --version, -V               Print the Version number" +
+    "\n     --help, -h                  Print this help message" +
     "\n" +
     "\nIf you have issues, make sure you're admin (Can you access /sys.scripts.do manually)" +
     "\nAlso, delete the file ~/.executorCookies.json and the file ./.token" +
@@ -40,13 +45,24 @@ try {
         {name: 'user', alias:'u', type: String, defaultValue: os.userInfo().username},
         {name: 'file', alias:'f', defaultOption: true, type: String,multiple:true},
         {name: 'files', alias:'F', type:String},
-        {name: 'scope', alias:'s', type:String, defaultValue:globalScopeSysId}
+        {name: 'scope', alias:'s', type:String, defaultValue:globalScopeSysId},
+        {name: 'help', alias:'h', type:Boolean},
+        {name: 'version', alias:'V', type:Boolean}
 
     ]);
 }catch(e){
     console.error(USAGE_MSG);
     process.exit(-1);
 }
+if(options.help){
+    console.error(USAGE_MSG);
+    process.exit(-1);
+}
+if(options.version){
+    console.log(scriptName);
+    process.exit(0);
+}
+
 if(!options.file && !options.files){
     console.error(USAGE_MSG);
     process.exit(-2);
